@@ -2,8 +2,9 @@ package com.josiahebhomenye.crypto.remote
 
 import java.util.{ List => JList }
 
-import com.cryptoutility.protocol.Events
+import com.cryptoutility.protocol.{Events, EventSerializer}
 import com.cryptoutility.protocol.Events._
+import com.cryptoutility.protocol.EventSerializer._
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.{MessageToMessageCodec, MessageToMessageEncoder, MessageToMessageDecoder}
@@ -23,10 +24,10 @@ object codec {
 
     override def decode(ctx: ChannelHandlerContext, msg: BinaryWebSocketFrame, out: JList[AnyRef]): Unit = {
       buf ++= Unpooled.copiedBuffer(msg.content()).array()
-      if(buf.length < Events.HeaderSize){
+      if(buf.length < HeaderSize){
         return
       }
-      if(length.isEmpty) length = Some(readInt(buf.slice(0, Events.IntSize).toArray))
+      if(length.isEmpty) length = Some(readInt(buf.slice(0, IntSize).toArray))
       val l = length.get
       if(buf.length < l){
         return

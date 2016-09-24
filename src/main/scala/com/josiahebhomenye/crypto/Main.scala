@@ -21,11 +21,12 @@ object Main {
     val host = "localhost"
     val port = 9000
     val cryptoService = new RemoteCryptoService(home)
-    val askUser: () => Future[UserInfo] = AskUser.fromConsole
+    val askUser: () => Future[(String, String, String)] = AskUser.fromConsole
     val saveUser: (UserInfo, File) => UserInfo = BootStrap.save
     val initialise = cryptoService.initialise _
-    val bootStrap = new BootStrap(initialise, askUser, saveUser, home)
-    val handler = new ServerHandler(Seq(cryptoService, bootStrap), Seq(cryptoService))
+    val extractUserInfo = BootStrap.get _
+    val bootStrap = new BootStrap(initialise, askUser, saveUser, extractUserInfo, home)
+    val handler = new ServerHandler(Seq(cryptoService.notify _, bootStrap.notify _), Seq(cryptoService.on _))
     val server = new Server(host, port, handler)
 
 

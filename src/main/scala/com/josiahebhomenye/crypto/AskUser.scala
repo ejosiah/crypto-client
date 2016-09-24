@@ -19,7 +19,7 @@ object AskUser {
     println("Enter your emailAddress:")
     val email = in.nextLine()
 
-    UserInfo(fname, lname, email)
+    (fname, lname, email)
   }
 
   def fromGUI()(implicit ec: ExecutionContext) = ???

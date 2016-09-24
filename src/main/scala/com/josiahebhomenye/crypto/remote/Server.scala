@@ -39,7 +39,7 @@ class Server(host: String, port: Int, handler:  ServerHandler)(implicit ec: Exec
 
     f.onComplete{
       case Failure(NonFatal(e)) =>
-        mayBeGroup = Some(group)
+        mayBeGroup = None
         println("unable to start client")
         e.printStackTrace()
       case Success(c) =>

@@ -1,50 +1,45 @@
 package com.josiahebhomenye.crypto
 
-import java.io.{FileOutputStream, PrintWriter, File}
+import java.io._
 import java.security.KeyPairGenerator
 
-import com.cryptoutility.protocol.Events.UserCreated
-import com.cryptoutility.protocol.Events.UserInfo
+import com.cryptoutility.protocol.Events.{UserCreated, UserInfo}
 import com.josiahebhomenye.crypto.remote.{ChannelActive, ChannelEvent}
-import com.josiahebhomenye.crypto.service.CryptoService
 import com.sun.media.sound.InvalidFormatException
-import io.netty.channel.ChannelHandlerContext
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
-import com.josiahebhomenye.crypto._
-
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
-
-
-import java.security.{KeyPair => JKeyPair }
-
-object KeyPair{
-
-  def unapply(keyPair: JKeyPair) = Some((keyPair.getPrivate, keyPair.getPublic))
-}
 
 object BootStrap{
   type Initialize = UserInfo => Future[UserCreated]
   type AskUser = () => Future[(String, String, String)]
   type SaveUser = (UserInfo, File) => UserInfo
+  type ExtractUserInfo = File => UserInfo
 
   def save(info: UserInfo, home: File)(implicit ec: ExecutionContext): UserInfo = {
-    if(!home.exists()) home.mkdir()
     TryResource(new PrintWriter(new FileOutputStream(new File(home,"info")))){ out =>
       out.println(info.fname)
       out.println(info.lname)
       out.println(info.email)
-      out.println(info.clientId.get)
+      out.println(info.clientId)
       info
     }.get
   }
+
+  def get(home: File) = { // TODO move out of here
+    val lines = Source.fromFile(new File(home, "info")).getLines().toSeq
+    if(lines.size != 4) throw new InvalidFormatException(lines.mkString(", "))
+    val publicKey = Crypto.extractPublicKey(home)
+    UserInfo(lines.head, lines(1), lines(2), publicKey, lines(3))
+  }
+
+
 }
 
 import BootStrap._
 
-class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, path: String)(implicit ec: ExecutionContext) {
+class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, extractUserInfo: ExtractUserInfo, path: String)(implicit ec: ExecutionContext) {
 
 
   def run: Future[UserInfo] = {
@@ -53,12 +48,14 @@ class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, pa
       initialise(extractUserInfo(home)).map(_.user)
     } else {
        askUser().flatMap{ info =>
+         if(!home.exists()) home.mkdir()
          val gen = KeyPairGenerator.getInstance("RSA")
          gen.initialize(2048)
-         val (privateKey, publicKey) = gen.generateKeyPair()
-         // TODO save keys
+       //TODO figure this out val keyPair @ (_, publicKey) = gen.generateKeyPair()
+         val keyPair = gen.generateKeyPair
+         Crypto.saveKeys(keyPair, home)
          val (fname, lname, email) = info
-         val user = UserInfo(fname, lname, email, publicKey)
+         val user = UserInfo(fname, lname, email, keyPair.getPublic)
 
          initialise(user)
        }.map{ created =>
@@ -68,11 +65,7 @@ class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, pa
 
   }
 
-  private def extractUserInfo(home: File) = { // TODO move out of here
-    val lines = Source.fromFile(new File(home, "info")).getLines().toSeq
-    if(lines.size != 4) throw new InvalidFormatException(lines.mkString(", "))
-    UserInfo(lines.head, lines(1), lines(2), null, Some(lines(3)))
-  }
+
 
   def notify(event: ChannelEvent): Future[Unit] = {
     if (event.isInstanceOf[ChannelActive]) {

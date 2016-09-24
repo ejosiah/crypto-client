@@ -29,7 +29,7 @@ class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventLi
   }
 
   override def channelInactive(ctx: ChannelHandlerContext): Unit = {
-    listeners.foreach(f => f(ChannelInActive(ctx)))
+    listeners.foreach(f => f(ChannelInActive(ctx))) // TODO shutdown or try to reconnect when we lose the connection
   }
 
   override def channelRead0(ctx: ChannelHandlerContext, event: Event): Unit = {
