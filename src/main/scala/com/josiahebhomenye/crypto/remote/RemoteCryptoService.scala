@@ -7,8 +7,10 @@ import com.cryptoutility.protocol.Events.{UserCreated, Event, Initialized}
 import com.cryptoutility.protocol.Events.UserInfo
 import com.josiahebhomenye.crypto.service.CryptoService
 import io.netty.channel.{Channel, ChannelHandlerContext}
+import com.josiahebhomenye.crypto.NettyToScalaHelpers._
 
 import scala.concurrent.{Promise, ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class RemoteCryptoService(path: String)(implicit ec: ExecutionContext) extends CryptoService {
 
@@ -21,7 +23,9 @@ class RemoteCryptoService(path: String)(implicit ec: ExecutionContext) extends C
 
    val promise = Promise[UserCreated]
    maybePromise = Some(promise)
-   connection.writeAndFlush(Initialized(userInfo.clientId.isEmpty, userInfo))
+   connection.writeAndFlush(Initialized(userInfo.clientId.isEmpty, userInfo)).onFailure{
+     case NonFatal(e) => promise.failure(e)
+   }
    promise.future
  }
 

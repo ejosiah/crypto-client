@@ -33,7 +33,6 @@ class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventLi
   }
 
   override def channelRead0(ctx: ChannelHandlerContext, event: Event): Unit = {
-    println(event)
     eventListeners.foreach(f => f(event))
   }
 
