@@ -4,6 +4,14 @@ version := "0.1.0"
 
 scalaVersion := "2.11.8"
 
+maintainer := "Josiah <joebhomenye@gmail.com>"
+packageSummary := "crypto-client"
+packageDescription := """crypto-client MSI."""
+
+// wix build information
+wixProductId := "ce07be71-510d-414a-92d4-dff47631848a"
+wixProductUpgradeId := "4552fb0e-e257-4dbd-9ecb-dba9dbacf424"
+
 
 libraryDependencies += "io.netty" % "netty-all" % "4.1.3.Final"
 libraryDependencies += "com.typesafe" % "config" % "1.3.0"
