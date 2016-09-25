@@ -1,18 +1,16 @@
 package com.josiahebhomenye.crypto.remote
 
 
-import java.security.KeyPairGenerator
-
-import com.cryptoutility.protocol.Events.{UserCreated, Event, Initialized}
-import com.cryptoutility.protocol.Events.UserInfo
-import com.josiahebhomenye.crypto.service.CryptoService
-import io.netty.channel.{Channel, ChannelHandlerContext}
+import com.cryptoutility.protocol.Events.{Event, Initialized, UserCreated, UserInfo}
 import com.josiahebhomenye.crypto.NettyToScalaHelpers._
+import com.josiahebhomenye.crypto.service.CryptoService
+import com.typesafe.config.Config
+import io.netty.channel.Channel
 
-import scala.concurrent.{Promise, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.control.NonFatal
 
-class RemoteCryptoService(path: String)(implicit ec: ExecutionContext) extends CryptoService {
+class RemoteCryptoService(path: String)(implicit ec: ExecutionContext, conf: Config) extends CryptoService {
 
   var mayBeConnection = Option.empty[Channel]
   var maybePromise: Option[Any] = None

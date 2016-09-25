@@ -6,6 +6,7 @@ import java.security.KeyPairGenerator
 import com.cryptoutility.protocol.Events.{UserCreated, UserInfo}
 import com.josiahebhomenye.crypto.remote.{ChannelActive, ChannelEvent}
 import com.sun.media.sound.InvalidFormatException
+import com.typesafe.config.Config
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
@@ -27,7 +28,7 @@ object BootStrap{
     }.get
   }
 
-  def get(home: File) = { // TODO move out of here
+  def get(home: File)(implicit conf: Config) = {
     val lines = Source.fromFile(new File(home, "info")).getLines().toSeq
     if(lines.size != 4) throw new InvalidFormatException(lines.mkString(", "))
     val publicKey = Crypto.extractPublicKey(home)
@@ -39,7 +40,8 @@ object BootStrap{
 
 import BootStrap._
 
-class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, extractUserInfo: ExtractUserInfo, path: String)(implicit ec: ExecutionContext) {
+class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, extractUserInfo: ExtractUserInfo, path: String)
+               (implicit ec: ExecutionContext, conf: Config) {
 
 
   def run: Future[UserInfo] = {
@@ -49,8 +51,8 @@ class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, ex
     } else {
        askUser().flatMap{ info =>
          if(!home.exists()) home.mkdir()
-         val gen = KeyPairGenerator.getInstance("RSA")
-         gen.initialize(2048)
+         val gen = KeyPairGenerator.getInstance(Env.getString("cipher.asymmetric.algorithm"))
+         gen.initialize(Env.getInt("cipher.asymmetric.key.length"))
        //TODO figure this out val keyPair @ (_, publicKey) = gen.generateKeyPair()
          val keyPair = gen.generateKeyPair
          Crypto.saveKeys(keyPair, home)

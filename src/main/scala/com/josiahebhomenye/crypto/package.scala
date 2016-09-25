@@ -124,9 +124,7 @@ package object crypto {
     def apply(): NettyNioEventLoopGroup = new NettyNioEventLoopGroup()
   }
 
-  /*
-     WebSocketClientProtocolHandler(webSocketURL : URI, version : WebSocketVersion, subprotocol : String, allowExtensions : Boolean, customHeaders : HttpHeaders, maxFramePayloadLength : Int, handleCloseFrames : Boolean, performMasking : Boolean, allowMaskMismatch : Boolean)
- */
+
   object WebSocketClientProtocolHandler{
 
     def apply(uri: String, maxFramePayLoadLength: Int) = {

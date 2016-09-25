@@ -3,6 +3,8 @@ import java.security.spec._
 import javax.crypto._
 import javax.crypto.spec._
 
+import scala.util.Random
+
 
 val keyGen = KeyPairGenerator.getInstance("RSA")
 keyGen.initialize(1024)
@@ -35,3 +37,16 @@ case class Three(a: String, b: String, c: String)
 val list @ head :: tail = List(1, 2, 3, 4, 5)
 
 val t @ Three(a, b, c) = new Three("a", "b", "c")
+
+val MaxPort = 1 << 16
+val minPort = 10000
+val host = "localhost"
+val port = (MaxPort - minPort) + minPort
+
+val op1 = None
+val op2 = None
+val g = "three"
+
+Seq(op1, op2).foldLeft(g){ (d, op) =>
+  op.getOrElse(d)
+}

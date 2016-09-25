@@ -2,7 +2,7 @@ package com.josiahebhomenye.crypto.remote
 
 import com.cryptoutility.protocol.Events.Event
 import io.netty.channel.{ChannelHandlerContext, SimpleChannelInboundHandler}
-
+import com.typesafe.config.Config
 import scala.concurrent.Future
 
 sealed trait ChannelEvent{
@@ -11,6 +11,7 @@ sealed trait ChannelEvent{
 
 case class ChannelActive(ctx: ChannelHandlerContext) extends ChannelEvent
 case class ChannelInActive(ctx: ChannelHandlerContext) extends ChannelEvent
+case class ExceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) extends ChannelEvent
 
 object ServerHandler{
 
@@ -20,7 +21,7 @@ object ServerHandler{
 }
 import ServerHandler._
 
-class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventListener]) extends SimpleChannelInboundHandler[Event]{
+class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventListener])(implicit conf: Config) extends SimpleChannelInboundHandler[Event]{
 
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {
@@ -37,7 +38,7 @@ class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventLi
   }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = {
-    cause.printStackTrace()
+    listeners.foreach(f => f(ExceptionCaught(ctx, cause)))
   }
 
 }

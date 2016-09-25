@@ -1,22 +1,38 @@
 package com.josiahebhomenye.crypto.remote
 
+import java.io.File
+
+import com.cryptoutility.protocol.Events.{Event, UserCreated, UserInfo}
 import com.josiahebhomenye.crypto.NettyToScalaHelpers._
 import com.josiahebhomenye.crypto._
 import com.josiahebhomenye.crypto.remote.codec.Codec
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.socket.nio.NioSocketChannel
-import io.netty.channel.{Channel, EventLoopGroup}
+import io.netty.channel.{ChannelPipeline, Channel, EventLoopGroup}
 import io.netty.handler.codec.http.{HttpObjectAggregator, HttpClientCodec}
-import sun.net.www.http.HttpClient
 
 import scala.concurrent.{Future, ExecutionContext}
 import scala.util.{Success, Failure}
 import scala.util.control.NonFatal
 
-/**
-  * Created by jay on 20/09/2016.
-  */
-class Server(host: String, port: Int, handler:  ServerHandler)(implicit ec: ExecutionContext) {
+
+object Server{
+
+  def apply(home: String, host: String, port: Int, handlerChain: Channel => ChannelPipeline)(implicit ec: ExecutionContext) = {
+    new Server(host, port, handlerChain)
+  }
+
+  def webSocketHandlers(handler: ServerHandler, host: String, port: Int)(ch: Channel) = {
+    ch.pipeline()
+      .addLast(new HttpClientCodec())
+      .addLast(new HttpObjectAggregator(65536))
+      .addLast(WebSocketClientProtocolHandler(s"ws://$host:$port/client", Int.MaxValue))
+      .addLast(new Codec)
+      .addLast(handler)
+  }
+}
+
+class Server(host: String, port: Int, handler:  Channel => ChannelPipeline)(implicit ec: ExecutionContext) {
 
   var mayBeGroup: Option[EventLoopGroup] = None
   val _1MB = Math.pow(1024, 3).toInt
@@ -28,14 +44,8 @@ class Server(host: String, port: Int, handler:  ServerHandler)(implicit ec: Exec
         .group(group)
         .channel(classOf[NioSocketChannel])
         .remoteAddress(host, port)
-        .handler { ch: Channel =>
-          ch.pipeline()
-            .addLast(new HttpClientCodec())
-            .addLast(new HttpObjectAggregator(65536))
-            .addLast(WebSocketClientProtocolHandler(s"ws://$host:$port/client", Int.MaxValue))
-            .addLast(new Codec)
-            .addLast(handler)
-        }.connect()
+        .handler(handler)
+        .connect()
 
     f.onComplete{
       case Failure(NonFatal(e)) =>
