@@ -14,28 +14,9 @@ import scala.concurrent.{Future, ExecutionContext}
   * Created by jay on 20/09/2016.
   */
 object Main {
+  import Factory._
 
   def main(args: Array[String]){
-    implicit val ec = ExecutionContext.global
-    implicit val config = ConfigFactory.load()
-    val home = System.getProperty("user.home") + File.separator + ".crypto-utility"
-
-    val host = Env.getString("server.host")
-    val port = Env.getInt("server.port")
-    val cryptoService = new RemoteCryptoService(home)
-    val askUser: () => Future[(String, String, String)] = AskUser.fromConsole
-    val saveUser: (UserInfo, File) => UserInfo = BootStrap.save
-    val initialise = cryptoService.initialise _
-    val extractUserInfo = BootStrap.get _
-    val bootStrap = new BootStrap(initialise, askUser, saveUser, extractUserInfo, home)
-    val handler = new ServerHandler(Seq(cryptoService.notify _, bootStrap.notify _), Seq(cryptoService.on _))
-    val handlerChain = Server.webSocketHandlers(handler, host, port)(_)
-
-
-
-    val server = Server(home, host, port, handlerChain)
-
-
     server.run.onComplete{ case _ =>
       Runtime.getRuntime.addShutdownHook(new Thread(server.stop()))
     }

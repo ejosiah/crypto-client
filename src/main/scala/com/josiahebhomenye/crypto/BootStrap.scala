@@ -13,7 +13,7 @@ import scala.io.Source
 import scala.util.control.NonFatal
 
 object BootStrap{
-  type Initialize = UserInfo => Future[UserCreated]
+  type Initialize = (UserInfo, Boolean) => Future[UserCreated]
   type AskUser = () => Future[(String, String, String)]
   type SaveUser = (UserInfo, File) => UserInfo
   type ExtractUserInfo = File => UserInfo
@@ -40,14 +40,14 @@ object BootStrap{
 
 import BootStrap._
 
-class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, extractUserInfo: ExtractUserInfo, path: String)
+class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, extractUserInfo: ExtractUserInfo)
                (implicit ec: ExecutionContext, conf: Config) {
 
 
   def run: Future[UserInfo] = {
-    val home = new File(path)
+    val home = new File(conf.getString("user.workDir"))
     if (home.exists()) {
-      initialise(extractUserInfo(home)).map(_.user)
+      initialise(extractUserInfo(home), false).map(_.user)
     } else {
        askUser().flatMap{ info =>
          if(!home.exists()) home.mkdir()
@@ -59,7 +59,7 @@ class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, ex
          val (fname, lname, email) = info
          val user = UserInfo(fname, lname, email, keyPair.getPublic)
 
-         initialise(user)
+         initialise(user, false)
        }.map{ created =>
          saveUser(created.user, home)
        }

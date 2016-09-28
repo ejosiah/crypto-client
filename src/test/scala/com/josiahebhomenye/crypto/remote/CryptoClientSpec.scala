@@ -3,11 +3,11 @@ package com.josiahebhomenye.crypto.remote
 import java.security.KeyPairGenerator
 import java.util.UUID
 
-
 import com.typesafe.config.ConfigFactory
 import org.scalatest._
-import scala.concurrent.{Await, Future}
+
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 /**
@@ -19,11 +19,9 @@ abstract class CryptoClientSpec extends WordSpec with MustMatchers with OptionVa
 
   implicit val config = ConfigFactory.load()
 
-  val timeout = 30 seconds
+  implicit val timeout = 30 seconds
 
   def id = UUID.randomUUID().toString
-
-  def publicKey = KeyPairGenerator.getInstance("RSA").generateKeyPair().getPublic
 
   def await[T](f: Future[T]) = Await.result(f, timeout)
 

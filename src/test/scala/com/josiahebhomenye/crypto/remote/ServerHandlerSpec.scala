@@ -1,8 +1,7 @@
 package com.josiahebhomenye.crypto.remote
 
-import com.cryptoutility.protocol.Events.{StreamStarted, Event}
+import com.cryptoutility.protocol.Events.{StreamEnded, Event}
 import io.netty.channel.ChannelHandlerContext
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.mockito.MockitoSugar
 
 import scala.concurrent.{Future, Promise}
@@ -22,7 +21,7 @@ class ServerHandlerSpec extends CryptoClientSpec with MockitoSugar with OneServe
       val promise = Promise[Event]()
       val l = listener(promise)(_)
       val handler = new ServerHandler(Seq(), Seq(l))
-      val event = new StreamStarted
+      val event = new StreamEnded(5)
 
       handler.channelRead0(ctx, event)
 

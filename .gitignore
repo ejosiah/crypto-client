@@ -45,3 +45,4 @@ bin
 **/Scratchpad.scala
 
 *.log
+*.sc

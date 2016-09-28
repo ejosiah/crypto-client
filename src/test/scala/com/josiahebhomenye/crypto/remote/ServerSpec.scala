@@ -1,20 +1,11 @@
 package com.josiahebhomenye.crypto.remote
 
-import java.net.ServerSocket
-
-import io.netty.buffer.ByteBuf
-import io.netty.channel.{ChannelHandlerContext, Channel}
-import io.netty.handler.codec.MessageToByteEncoder
-
-import scala.concurrent.Await
-import scala.util.Random
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
   * Created by jay on 24/09/2016.
   */
-class ServerSpec extends CryptoClientSpec with OneServerPerTest{
+class ServerSpec extends CryptoClientSpec with OneServerPerTest with ServerMustMatchers{
 
   "Server connection" should {
 

@@ -3,7 +3,8 @@ package com.josiahebhomenye.crypto.remote
 import com.cryptoutility.protocol.Events.Event
 import io.netty.channel.{ChannelHandlerContext, SimpleChannelInboundHandler}
 import com.typesafe.config.Config
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 sealed trait ChannelEvent{
   def ctx: ChannelHandlerContext
@@ -21,7 +22,7 @@ object ServerHandler{
 }
 import ServerHandler._
 
-class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventListener])(implicit conf: Config) extends SimpleChannelInboundHandler[Event]{
+class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventListener])(implicit ec: ExecutionContext, conf: Config) extends SimpleChannelInboundHandler[Event]{
 
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {
@@ -30,15 +31,21 @@ class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventLi
   }
 
   override def channelInactive(ctx: ChannelHandlerContext): Unit = {
-    listeners.foreach(f => f(ChannelInActive(ctx))) // TODO shutdown or try to reconnect when we lose the connection
+    listeners.foreach{ f =>
+      // TODO shutdown or try to reconnect when we lose the connection
+      f(ChannelInActive(ctx)).onFailure{ case NonFatal(e) => ctx.fireExceptionCaught(e) }
+    }
   }
 
   override def channelRead0(ctx: ChannelHandlerContext, event: Event): Unit = {
-    eventListeners.foreach(f => f(event))
+    eventListeners.foreach{ f =>
+      f(event).onFailure{ case NonFatal(e) => ctx.fireExceptionCaught(e) }
+    }
   }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = {
-    listeners.foreach(f => f(ExceptionCaught(ctx, cause)))
+    listeners.foreach(f => f(ExceptionCaught(ctx, cause))) // TODO use a differnt handler for errors
+    throw cause
   }
 
 }

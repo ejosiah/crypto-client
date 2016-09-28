@@ -19,8 +19,8 @@ object codec {
 
   class EventDecoder extends MessageToMessageDecoder[BinaryWebSocketFrame] {
 
-    var buf = ArrayBuffer[Byte]()
-    var length = Option.empty[Int]
+    private [remote] var buf = ArrayBuffer[Byte]()
+    private [remote] var length = Option.empty[Int]
 
     override def decode(ctx: ChannelHandlerContext, msg: BinaryWebSocketFrame, out: JList[AnyRef]): Unit = {
       buf ++= Unpooled.copiedBuffer(msg.content()).array()
@@ -28,16 +28,25 @@ object codec {
         return
       }
       if(length.isEmpty) length = Some(readInt(buf.slice(0, IntSize).toArray))
-      val l = length.get
-      if(buf.length < l){
+      if(length.exists(buf.length < _)){
         return
       }
-      val event = EventSerializer.deserialize(buf.toArray)
-      out.add(event)
-      buf = new ArrayBuffer[Byte]()
-      length = None
+      while(length.exists(buf.length >= _)){
+        val content = buf.slice(0, length.get)
+        val event = EventSerializer.deserialize(content.toArray)
+        out.add(event)  // TODO sort events before adding them
+        buf = buf.slice(content.length, buf.length)
+        if(buf.length >= IntSize) {
+          length = Some(readInt(buf.slice(0, IntSize).toArray))
+        }else{
+          length = None
+        }
+
+      }
+      println()
     }
   }
+
 
   class EventEncoder extends MessageToMessageEncoder[Event] {
 

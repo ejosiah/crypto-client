@@ -2,6 +2,8 @@ package com.josiahebhomenye.crypto
 
 import com.typesafe.config.Config
 
+import scala.util.Try
+
 
 sealed trait Env{
   def name = this.getClass.getSimpleName.replace("$", "").toLowerCase()
@@ -27,18 +29,17 @@ object Env{
   }
 
   def getString(key: String)(implicit config: Config): String = {
-    get(Seq(Option(config.getString(s"$current.$key"))), config.getString(key) )
+    get(Seq(safeOp(config.getString(s"$current.$key"))), config.getString(key) )
   }
 
   def getInt(key: String)(implicit config: Config): Int = {
-    get(Seq(Option(config.getInt(s"$current.$key"))), config.getInt(key) )
+    get(Seq(safeOp(config.getInt(s"$current.$key"))), config.getInt(key) )
   }
 
   def getInt(key: String, default: Int)(implicit config: Config): Int = {
    get(Seq(Option(config.getInt(key))
       , Option(config.getInt(s"$current.$key"))
     ), default)
-
   }
 
   def getString(key: String, default: String)(implicit config: Config): String = {
@@ -46,6 +47,8 @@ object Env{
       , Option(config.getString(s"$current.$key"))
     ), default)
   }
+
+  def safeOp[T](get: => T): Option[T] = Try(get).toOption
 
   def get[T](ops: Seq[Option[T]], default: T): T = ops.foldLeft(default)((d, op)  => op.getOrElse(d))
 

@@ -11,6 +11,6 @@ import scala.concurrent.Future
 trait CryptoService{
   type Id = String
 
-  def initialise(userInfo: UserInfo): Future[UserCreated]
+  def initialise(userInfo: UserInfo, isNew: Boolean): Future[UserCreated]
 
 }

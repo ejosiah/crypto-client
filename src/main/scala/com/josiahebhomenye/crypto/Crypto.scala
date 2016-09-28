@@ -2,18 +2,14 @@ package com.josiahebhomenye.crypto
 
 import java.io._
 import java.nio.file.{Files, StandardCopyOption}
-import java.security.{Key, KeyFactory, KeyPair => JKeyPair}
+import java.security.{KeyPair => JKeyPair, PrivateKey, PublicKey, Key, KeyFactory}
 import java.security.spec.X509EncodedKeySpec
+import java.util.Base64
+import javax.crypto.Cipher
 
 import com.typesafe.config.Config
 
-object KeyPair{
-
-  def unapply(keyPair: JKeyPair) = Some((keyPair.getPrivate, keyPair.getPublic))
-}
-
 object Crypto {
-
 
   def readFully(file: File) = {
     val out = new ByteArrayOutputStream(1024)
@@ -39,6 +35,5 @@ object Crypto {
     val path = new File(home, saveAs).toPath
     Files.copy(new ByteArrayInputStream(key.getEncoded), path, StandardCopyOption.REPLACE_EXISTING)
   }
-
 
 }
