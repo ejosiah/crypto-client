@@ -44,14 +44,10 @@ class RemoteCryptoService(unwrap: String => Key, decrypt: (String, Key) => Strin
   val symmetricAlgo = conf.getString("cipher.symmetric.algorithm")
   val lock = new ReentrantLock()
   val connectionLatch = new CountDownLatch(1)
-  val streamEndLatch = new CountDownLatch(1)
   var mayBeConnection = Option.empty[Channel]
   var maybePromise: Option[Any] = None
-  var mayBeOut = Option.empty[DataOutputStream]
   var mayBeUser = Option.empty[UserInfo]
-  var mayBeStreamEnded = Option.empty[StreamEnded]
-  var streamBuf = ArrayBuffer[StreamPart]()
-  var currSeq = 0L // TODO use atomic here
+  val writer = new StreamWriter(unwrap, decrypt)
 
  def initialise(userInfo: UserInfo, isNew: Boolean): Future[UserCreated] = {
    if(mayBeConnection.isEmpty){
@@ -89,87 +85,7 @@ class RemoteCryptoService(unwrap: String => Key, decrypt: (String, Key) => Strin
         maybePromise
           .map(_.asInstanceOf[Promise[UserCreated]])
           .foreach(_.success(e))
-      case e: StreamStarted =>
-        val secret = unwrap(e.secret)
-        val filename = decrypt(e.filename, secret)
-        Logger.info(s" streaming started for $filename")
-        val path = conf.getString("user.workDir") + s"/$filename.krypt"
-        mayBeOut = Some(new DataOutputStream(new FileOutputStream(path)))
-        mayBeOut.foreach{ out =>
-          out.writeUTF(e.secret)
-          out.writeUTF(e.filename)
-          out.writeUTF(e.contentType)
-          out.writeUTF(e.from)
-        }
-        processBuffer()
-        logState(e)
-      case stream @ StreamPart(seqId, chunk) =>
-        if(mayBeOut.isEmpty || seqId != currSeq){
-          streamBuf = streamBuf += stream
-          logState(stream)
-        }else {
-          write(stream)
-          processBuffer()
-          logState(stream)
-        }
-      case e @ StreamEnded(size) =>
-          Logger.info(s"${Thread.currentThread()} size: $size")
-          Logger.info(s"currSize: $currSeq")
-          Logger.debug(s"buffer size: ${streamBuf.size}")
-          processBuffer()
-          Logger.debug(s"buffer size: ${streamBuf.size}")
-        if(currSeq < size){
-          val remaining = size - currSeq
-          Logger.info(s"streaming not yet finished, $remaining of $size items still left to process")
-          (0 to 10).foreach(i => Logger.info(streamBuf(i)))
-          mayBeStreamEnded = Some(e)
-          streamEndLatch.await()
-          finishStreaming()
-        }
+      case e: StreamEvent => writer.write(e)
     }
-  }
-
-  private def useLock[T](body: => T): T ={
-    lock.lock()
-    try{
-      body
-    }finally {
-      lock.unlock()
-    }
-  }
-
-  private def logState(e: Event) = {
-  //  Logger.info(s"event: ${e.getClass.getSimpleName} => currSeq: $currSeq, buffer: ${streamBuf.map(_.seqId)}, output: $mayBeOut, streamEnd: $mayBeStreamEnded")
-  }
-
-  private def processBuffer(): Unit = {
-    Logger.info(s" buffer size: ${streamBuf.size}")
-   while(streamBuf.exists(_.seqId == currSeq)){
-     val stream = streamBuf.find(_.seqId == currSeq).get
-     write(stream)
-     streamBuf = streamBuf -= stream
-   }
-    mayBeStreamEnded.foreach{ e =>
-     if(currSeq >= e.size){
-       streamEndLatch.countDown()
-     }
-    }
-  }
-
-  private def write(stream: StreamPart): Unit = {
-    mayBeOut.get.write(stream.chunk)
-    currSeq = stream.seqId
-    Logger.debug(s"processed $currSeq chunks")
-  }
-
-  private def finishStreaming(): Unit ={
-    mayBeOut.foreach { out =>
-      out.flush()
-      out.close()
-    }
-    mayBeOut = None
-    mayBeStreamEnded = None
-    currSeq = 0L
-    Logger.info("finished processing streams")
   }
 }

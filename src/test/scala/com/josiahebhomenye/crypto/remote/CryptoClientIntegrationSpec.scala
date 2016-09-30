@@ -1,13 +1,13 @@
 package com.josiahebhomenye.crypto.remote
 
 import java.io._
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 
 import akka.event.EventStream
 import com.cryptoutility.protocol.Events.{UserInfo, _}
 import com.josiahebhomenye.crypto._
 import io.netty.channel.Channel
-import com.cryptoutility.protocol.crypto.{Decrypt, Base64Decode, Base64Encode, Encrypt}
+import com.cryptoutility.protocol.crypto.{Base64Decode, Base64Encode, Decrypt, Encrypt}
 
 import scala.collection.SortedSet
 import scala.collection.mutable.ArrayBuffer
@@ -101,12 +101,12 @@ class CryptoClientIntegrationSpec extends ClientITestSetup{
     // TODO add sequence numbers to the streams for ordering
     val (secret, filename, contentType, from, clearText) =
       await(sendEncryptedFileFromServer().map{ _ => extractReceivedData() })
-
+    val expected = new String(Files.readAllBytes(Paths.get("src/test/resources/poem.txt")))
     secret mustBe secretKey
     filename mustBe "poem.txt"
     contentType mustBe "application/text"
     from mustBe "Alice Lanistar"
-    clearText mustBe Source.fromFile("src/test/resources/poem.txt").getLines().mkString("\n")
+    clearText mustBe expected
 
   }
 
