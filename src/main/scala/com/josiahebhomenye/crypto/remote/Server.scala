@@ -23,17 +23,18 @@ object Server{
   }
 
   def webSocketHandlers(handler: ServerHandler, host: String, port: Int)(ch: Channel) = {
+    val p = if(port == -1) "" else ":$port"
     ch.pipeline()
       .addLast(new HttpClientCodec())
       .addLast(new HttpObjectAggregator(65536))
-      .addLast(WebSocketClientProtocolHandler(s"ws://$host:$port/client", Int.MaxValue))
+      .addLast(WebSocketClientProtocolHandler(s"ws://$host$p/client", Int.MaxValue))
       .addLast(new Codec)
       .addLast(handler)
   }
 }
 
 class Server(host: String, port: Int, handler:  Channel => ChannelPipeline)(implicit ec: ExecutionContext) {
-
+  val validPort = if(port < 0) 80 else port // TODO port should be in range
   var mayBeGroup: Option[EventLoopGroup] = None
   val _1MB = Math.pow(1024, 3).toInt
 
@@ -43,17 +44,17 @@ class Server(host: String, port: Int, handler:  Channel => ChannelPipeline)(impl
       new Bootstrap()
         .group(group)
         .channel(classOf[NioSocketChannel])
-        .remoteAddress(host, port)
+        .remoteAddress(host, validPort)
         .handler(handler)
         .connect()
 
     f.onComplete{
       case Failure(NonFatal(e)) =>
         mayBeGroup = None
-        println("unable to start client")
+        Logger.info("unable to start client")
         e.printStackTrace()
       case Success(c) =>
-        println(s"client successfully connected to $c")
+        Logger.info(s"client successfully connected to $c")
         mayBeGroup = Some(group)
     }
 

@@ -1,6 +1,7 @@
 package com.josiahebhomenye.crypto.remote
 
 import com.cryptoutility.protocol.Events.Event
+import com.josiahebhomenye.crypto.Logger
 import io.netty.channel.{ChannelHandlerContext, SimpleChannelInboundHandler}
 import com.typesafe.config.Config
 import scala.concurrent.{ExecutionContext, Future}
@@ -26,7 +27,7 @@ class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventLi
 
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {
-    println("connected to server")
+    Logger.info("connected to server")
     listeners.foreach(f => f(ChannelActive(ctx)))
   }
 

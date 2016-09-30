@@ -3,15 +3,19 @@ package com.josiahebhomenye.crypto.remote
 import java.io._
 import java.nio.file.Files
 
+import akka.event.EventStream
 import com.cryptoutility.protocol.Events.{UserInfo, _}
 import com.josiahebhomenye.crypto._
 import io.netty.channel.Channel
 import com.cryptoutility.protocol.crypto.{Decrypt, Base64Decode, Base64Encode, Encrypt}
 
+import scala.collection.SortedSet
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
+import scala.util.{Random, Try}
 
 
 class CryptoClientIntegrationSpec extends ClientITestSetup{
@@ -31,12 +35,13 @@ class CryptoClientIntegrationSpec extends ClientITestSetup{
   val service = new RemoteCryptoService(unwrap, decrypt)
 
 
-  def bootStrap = new BootStrap(service.initialise, askUser, saveUser, extractUserInfo)
+  def bootStrap = new BootStrap(service.initialise, askUser, saveUser, extractUserInfo, notifyUser)
   def handler = new ServerHandler(Seq(service.notify, bootStrap.notify), Seq(service.on))
 
   def server = new Server(host, port, handlerChain(handler))
 
   override def beforeEach(): Unit = {
+    Try(Utility.delete(new File(config.getString("user.workDir"))))
     super.beforeEach()
     server.run
   }
@@ -46,7 +51,6 @@ class CryptoClientIntegrationSpec extends ClientITestSetup{
     mayBeUser = None
     server.stop()
     super.afterEach()
-    Utility.delete(new File(config.getString("user.workDir")))
   }
 
   def saveUser(user: UserInfo, file: File) = {
@@ -116,23 +120,24 @@ class CryptoClientIntegrationSpec extends ClientITestSetup{
     val from = encrypt("Alice Lanistar", secretKey)
 
     val secret = wrap(secretKey)
-//    println(s"secret: size: ${secret.length}")
-    println(s"secret: $secret")
+//    Logger.info(s"secret: size: ${secret.length}")
+    Logger.info(s"secret: $secret")
     sendFromServer[Event](StreamStarted(filename, contentType, from, secret)).flatMap{ _ =>
       val size = cipherText.length / 4
       val leftOver = cipherText.length - (size * 4)
       val parts = (Seq.fill[Int](3)(size) :+ (if (leftOver == 0) size else leftOver)).zipWithIndex
       var pos = 0
+      var streams = ArrayBuffer[StreamPart]()
       parts.foreach{ e =>
         val n = e._1
         val i = e._2
         val buf = new Array[Byte](n)
         Array.copy(cipherText, pos, buf, 0, n)
-
-        sendFromServer[Event](StreamPart(i, buf))
-        Thread.sleep(5.milli.toMillis)
+        streams += StreamPart(i, buf)
         pos = pos + n
       }
+      streams = Random.shuffle(streams)
+      streams.foreach(sendFromServer[Event](_))
       sendFromServer[Event](StreamEnded(4))
     }
 

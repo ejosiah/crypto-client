@@ -4,6 +4,7 @@ import java.io.{InputStream, OutputStream}
 import java.net.{ServerSocket, Socket}
 import java.util.Scanner
 
+import com.josiahebhomenye.crypto.Logger
 import io.netty.buffer.ByteBuf
 import io.netty.channel.{Channel, ChannelHandlerContext}
 import io.netty.handler.codec.MessageToByteEncoder
@@ -35,7 +36,7 @@ trait TestServer {
   def start() = {
     remote = new ServerSocket(port)
     connect = Future{
-      println("server online waiting on connection")
+      Logger.info("server online waiting on connection")
       remote.accept()
     }
     out = connect.map(_.getOutputStream )

@@ -6,7 +6,7 @@ import scala.util.Try
 
 
 sealed trait Env{
-  def name = this.getClass.getSimpleName.replace("$", "").toLowerCase()
+  override def toString = this.getClass.getSimpleName.replace("$", "").toLowerCase()
 }
 
 case object Test extends Env
@@ -18,38 +18,40 @@ case object Prod extends Env
 
 object Env{
 
-  lazy val current = Env(System.getProperty("env")).getOrElse(Dev)
+  val current = Env(Option(System.getProperty("env")))
 
-  def apply(value: String) = value.toLowerCase match {
-    case "test" => Some(Test)
-    case "dev" => Some(Dev)
-    case "uat" => Some(Uat)
-    case "Staging" => Some(Staging)
-    case "prod" => Some(Prod)
+  def apply(value: Option[String]) = value match {
+    case Some(env) => env match {
+      case "test" => Test
+      case "dev" => Dev
+      case "uat" => Uat
+      case "Staging" => Staging
+      case "prod" => Prod
+    }
+    case None => Prod
   }
 
   def getString(key: String)(implicit config: Config): String = {
-    get(Seq(safeOp(config.getString(s"$current.$key"))), config.getString(key) )
+    safeOp(config.getString(s"$current.$key")).getOrElse(config.getString(key))
+  }
+
+  def getBoolean(key: String)(implicit config: Config): Boolean = {
+    safeOp(config.getBoolean(s"$current.$key")).getOrElse(config.getBoolean(key))
   }
 
   def getInt(key: String)(implicit config: Config): Int = {
-    get(Seq(safeOp(config.getInt(s"$current.$key"))), config.getInt(key) )
+    safeOp(config.getInt(s"$current.$key")).getOrElse(config.getInt(key))
   }
 
   def getInt(key: String, default: Int)(implicit config: Config): Int = {
-   get(Seq(Option(config.getInt(key))
-      , Option(config.getInt(s"$current.$key"))
-    ), default)
+    safeOp(getInt(key)).getOrElse(default)
   }
 
   def getString(key: String, default: String)(implicit config: Config): String = {
-    get(Seq(Option(config.getString(key))
-      , Option(config.getString(s"$current.$key"))
-    ), default)
+    safeOp(getString(key)).getOrElse(default)
   }
 
   def safeOp[T](get: => T): Option[T] = Try(get).toOption
 
-  def get[T](ops: Seq[Option[T]], default: T): T = ops.foldLeft(default)((d, op)  => op.getOrElse(d))
 
 }

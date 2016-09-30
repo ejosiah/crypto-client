@@ -38,8 +38,10 @@ trait ClientITestSetup extends CryptoClientSpec with OneServerPerTest with Serve
     EventSerializer.deserialize(data)
   }
 
-  implicit  val encoder = (e: Any) => {
-    EventSerializer.serialize(e.asInstanceOf[Event])
+  implicit  val encoder = (data: Any) => data match {
+    case e: Event => EventSerializer.serialize(e)
+    case str: String => str.getBytes()
+    case _ => throw new Exception(s"No encoder available for ${data.getClass}")
   }
   
 
@@ -49,6 +51,8 @@ trait ClientITestSetup extends CryptoClientSpec with OneServerPerTest with Serve
   def askUser(): Future[(String, String, String)]
 
   def extractUserInfo(file: File): UserInfo
+
+  def notifyUser(user: UserInfo) = user
   
   def handlerChain(handler: ServerHandler)(ch: Channel): ChannelPipeline
   val keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair()

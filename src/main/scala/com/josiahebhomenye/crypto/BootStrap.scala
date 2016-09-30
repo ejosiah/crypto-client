@@ -10,6 +10,7 @@ import com.typesafe.config.Config
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
+import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 
 object BootStrap{
@@ -17,6 +18,7 @@ object BootStrap{
   type AskUser = () => Future[(String, String, String)]
   type SaveUser = (UserInfo, File) => UserInfo
   type ExtractUserInfo = File => UserInfo
+  type NotifyUser = UserInfo => UserInfo
 
   def save(info: UserInfo, home: File)(implicit ec: ExecutionContext): UserInfo = {
     TryResource(new PrintWriter(new FileOutputStream(new File(home,"info")))){ out =>
@@ -40,16 +42,17 @@ object BootStrap{
 
 import BootStrap._
 
-class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, extractUserInfo: ExtractUserInfo)
+class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, extractUserInfo: ExtractUserInfo, notifyUser: NotifyUser)
                (implicit ec: ExecutionContext, conf: Config) {
 
 
   def run: Future[UserInfo] = {
     val home = new File(conf.getString("user.workDir"))
+    var f: Future[UserInfo] = null
     if (home.exists()) {
-      initialise(extractUserInfo(home), false).map(_.user)
+      f = initialise(extractUserInfo(home), false).map(_.user)
     } else {
-       askUser().flatMap{ info =>
+       f = askUser().flatMap{ info =>
          if(!home.exists()) home.mkdir()
          val gen = KeyPairGenerator.getInstance(Env.getString("cipher.asymmetric.algorithm"))
          gen.initialize(Env.getInt("cipher.asymmetric.key.length"))
@@ -62,9 +65,13 @@ class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, ex
          initialise(user, false)
        }.map{ created =>
          saveUser(created.user, home)
-       }
+       }.map(notifyUser)
     }
-
+    f.onComplete{
+      case Success(_) => Logger.info("user registered on server")
+      case Failure(NonFatal(e)) => throw e
+    }
+    f
   }
 
 

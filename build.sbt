@@ -21,6 +21,16 @@ libraryDependencies +=   "org.scalatest" %% "scalatest" % "3.0.0" % Test
 libraryDependencies +=   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % Test
 libraryDependencies +=   "org.mockito" % "mockito-core" % "1.10.19" % Test
 
+libraryDependencies ++= Seq(
+  "org.pegdown" % "pegdown" % "1.6.0" % Test,
+  "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test
+)
+
+testOptions in Test ++= Seq(
+  Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports/html"),
+  Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/test-reports/html")
+)
+
 enablePlugins(JavaAppPackaging)
 
 //enablePlugins(JavaServerAppPackaging)

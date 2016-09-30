@@ -43,7 +43,6 @@ object codec {
         }
 
       }
-      println()
     }
   }
 
@@ -52,7 +51,7 @@ object codec {
 
     override def encode(ctx: ChannelHandlerContext, event: Event, out: JList[AnyRef]): Unit = {
       val data = EventSerializer.serialize(event)
-      println(data.length)
+    //  Logger.info(data.length)
       val frame = new BinaryWebSocketFrame(Unpooled.copiedBuffer(data))
       out.add(frame)
     }

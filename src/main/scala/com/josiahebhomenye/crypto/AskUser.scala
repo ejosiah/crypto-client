@@ -10,17 +10,18 @@ object AskUser {
 
   def fromConsole()(implicit ec: ExecutionContext) = Future{
     val in = new Scanner(System.in)
-    println("Enter your firstName:")
+    Logger.info("Enter your firstName:")
     val fname = in.nextLine()
 
-    println("Enter your lastName:")
+    Logger.info("Enter your lastName:")
     val lname = in.nextLine()
 
-    println("Enter your emailAddress:")
+    Logger.info("Enter your emailAddress:")
     val email = in.nextLine()
 
     (fname, lname, email)
   }
 
   def fromGUI()(implicit ec: ExecutionContext) = ???
+
 }
