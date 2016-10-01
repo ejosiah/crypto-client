@@ -1,15 +1,19 @@
 package com.josiahebhomenye.crypto
 
+import java.io.File
 import javax.swing.JOptionPane
-import javax.swing.JOptionPane._
 
 import com.cryptoutility.protocol.Events.UserInfo
 import com.typesafe.config.Config
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 
 object NotifyUsr {
+
+  val windows = Map(
+    "chrome" -> "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "firefox" -> "C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe")
 
   def apply(user: UserInfo)(implicit ec: ExecutionContext, config: Config): UserInfo = {
 
@@ -30,11 +34,11 @@ object NotifyUsr {
       case name if name.contains("mac") =>
         Runtime.getRuntime.exec(s"open $serverUrl?userId=${user.clientId}")
       case name if name.contains("windows") =>
-        val browsers: Seq[String] = Seq("chrome.exe", "firefox.exe", "ie.exe")
-        val results = Visit[String]("C:\\") (p => browsers.find(b => p.toString.endsWith(b)).orNull)
-        if(results.nonEmpty){
-          val browser = results.find(b => b.contains("chrome.exe")).getOrElse(results.head)
-          runtime.exec(s"$browser $serverUrl?userId=${user.clientId}")
+
+        val browser = windows.find(e => new File(e._2).exists()).map(_._2)
+
+        if(browser.isDefined){
+          runtime.exec(s"${browser.get} $serverUrl?userId=${user.clientId}")
         }else{
           import JOptionPane._
           showConfirmDialog(null, s"Put this link in your browser: $serverUrl?userId=${user.clientId}"

@@ -44,12 +44,14 @@ class RemoteCryptoService(unwrap: String => Key, decrypt: (String, Key) => Strin
   val symmetricAlgo = conf.getString("cipher.symmetric.algorithm")
   val lock = new ReentrantLock()
   val connectionLatch = new CountDownLatch(1)
+  val handShakeLatch = new CountDownLatch(1)
   var mayBeConnection = Option.empty[Channel]
   var maybePromise: Option[Any] = None
   var mayBeUser = Option.empty[UserInfo]
   val writer = new StreamWriter(unwrap, decrypt)
 
- def initialise(userInfo: UserInfo, isNew: Boolean): Future[UserCreated] = {
+ def initialise(userInfo: UserInfo, isNew: Boolean): Future[UserCreated] = Future{
+   handShakeLatch.await()
    if(mayBeConnection.isEmpty){
      Logger.info(s"${Thread.currentThread().getName}, connection not yet available, going to wait")
      if(!connectionLatch.await(10, TimeUnit.SECONDS)){
@@ -66,7 +68,7 @@ class RemoteCryptoService(unwrap: String => Key, decrypt: (String, Key) => Strin
      case NonFatal(e) => promise.failure(e)
    }
    promise.future
- }
+ }.flatMap(identity)
 
   def notify(event: ChannelEvent): Future[Unit] = Future {
     event match {
@@ -74,7 +76,11 @@ class RemoteCryptoService(unwrap: String => Key, decrypt: (String, Key) => Strin
         mayBeConnection = Some(ctx.channel())
         Logger.info(s"connection ${mayBeConnection.get} acquired, resuming execution")
         connectionLatch.countDown()
-      case ChannelInActive(_) => mayBeConnection = None
+      case ChannelInActive(_) =>
+        Logger.info("disconnected from server")
+        mayBeConnection = None
+      case HandShakeCompleted =>
+        handShakeLatch.countDown()
     }
   }
 

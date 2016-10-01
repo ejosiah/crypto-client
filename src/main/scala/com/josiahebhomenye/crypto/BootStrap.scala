@@ -48,11 +48,10 @@ class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, ex
 
   def run: Future[UserInfo] = {
     val home = new File(conf.getString("user.workDir"))
-    var f: Future[UserInfo] = null
     if (home.exists()) {
-      f = initialise(extractUserInfo(home), false).map(_.user)
+       initialise(extractUserInfo(home), false).map(it => notifyUser(it.user))
     } else {
-       f = askUser().flatMap{ info =>
+       val f = askUser().flatMap{ info =>
          if(!home.exists()) home.mkdir()
          val gen = KeyPairGenerator.getInstance(Env.getString("cipher.asymmetric.algorithm"))
          gen.initialize(Env.getInt("cipher.asymmetric.key.length"))
@@ -66,12 +65,12 @@ class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, ex
        }.map{ created =>
          saveUser(created.user, home)
        }.map(notifyUser)
+      f.onComplete{
+        case Success(_) => Logger.info("user registered on server")
+        case Failure(NonFatal(e)) => throw e
+      }
+      f
     }
-    f.onComplete{
-      case Success(_) => Logger.info("user registered on server")
-      case Failure(NonFatal(e)) => throw e
-    }
-    f
   }
 
 

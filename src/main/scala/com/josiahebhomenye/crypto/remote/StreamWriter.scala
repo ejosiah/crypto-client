@@ -60,22 +60,15 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
       useLock{
         size = count
         endReceived.set(true)
-        Logger.info(s"size: $size")
-        Logger.info(s"pos: $pos")
-        Logger.debug(s"pending size: ${pending.size}")
-        processBuffer()
-        Logger.debug(s"pending size: ${pending.size}")
-
         if(pos < size){
           Logger.debug(pending.take(10))
           processBuffer()
           if(pos < size){
            val remaining = size - pos
-            Logger.info(s"streaming not yet finished, $remaining of $size items still left to process")
+            Logger.debug(s"streaming not yet finished, $remaining of $size items still left to process")
             endCondition.await()
           }
           endStreaming()
-
         }else{
           endStreaming()
         }
