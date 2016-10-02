@@ -1,15 +1,7 @@
 package com.josiahebhomenye.crypto
 
-import java.io.File
-
-import com.cryptoutility.protocol.Events.UserInfo
+import com.josiahebhomenye.crypto.Converters._
 import com.josiahebhomenye.crypto.command.Commands
-import com.josiahebhomenye.crypto.remote.{ServerHandler, Server, RemoteCryptoService}
-import Converters._
-import com.typesafe.config.ConfigFactory
-import io.netty.util.internal.logging.{InternalLoggerFactory, Slf4JLoggerFactory}
-
-import scala.concurrent.{Future, ExecutionContext}
 
 /**
   * Created by jay on 20/09/2016.

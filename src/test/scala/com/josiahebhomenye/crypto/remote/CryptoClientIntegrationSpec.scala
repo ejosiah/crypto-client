@@ -4,19 +4,16 @@ import java.io._
 import java.nio.file.{Files, Paths}
 
 import _root_.io.netty.channel.Channel
-import akka.event.EventStream
 import com.cryptoutility.protocol.Events.{UserInfo, _}
-import com.josiahebhomenye.crypto._
-import io.netty.channel.Channel
 import com.cryptoutility.protocol.crypto.{Base64Decode, Base64Encode, Decrypt, Encrypt}
+import com.josiahebhomenye.crypto._
 
-import scala.collection.SortedSet
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.io.Source
 import scala.language.postfixOps
 import scala.util.{Random, Try}
+import com.josiahebhomenye.crypto.NettyToScalaHelpers._
 
 
 class CryptoClientIntegrationSpec extends ClientITestSetup{
