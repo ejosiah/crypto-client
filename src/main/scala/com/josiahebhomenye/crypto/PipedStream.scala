@@ -1,6 +1,6 @@
-package com.josiahebhomenye.crypto.io
+package com.josiahebhomenye.crypto
 
-import java.io.{OutputStream, InputStream, PipedInputStream, PipedOutputStream}
+import java.io.{PipedInputStream, PipedOutputStream}
 
 /**
   * Created by jay on 02/10/2016.

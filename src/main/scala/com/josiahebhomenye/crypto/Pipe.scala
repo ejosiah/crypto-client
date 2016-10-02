@@ -1,6 +1,4 @@
-package com.josiahebhomenye.crypto.io
-
-import java.io.{InputStream, OutputStream}
+package com.josiahebhomenye.crypto
 
 /**
   * Created by jay on 02/10/2016.

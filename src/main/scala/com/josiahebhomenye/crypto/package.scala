@@ -1,6 +1,6 @@
 package com.josiahebhomenye
 
-import java.net.{URI, URL}
+import java.net.{URI}
 import java.util.concurrent.TimeoutException
 import java.util.function.Consumer
 

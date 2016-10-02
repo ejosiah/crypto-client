@@ -1,19 +1,16 @@
 package com.josiahebhomenye.crypto.remote
 
-import java.io.File
-
-import com.cryptoutility.protocol.Events.{Event, UserCreated, UserInfo}
 import com.josiahebhomenye.crypto.NettyToScalaHelpers._
 import com.josiahebhomenye.crypto._
 import com.josiahebhomenye.crypto.remote.codec.Codec
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.socket.nio.NioSocketChannel
-import io.netty.channel.{ChannelPipeline, Channel, EventLoopGroup}
-import io.netty.handler.codec.http.{HttpObjectAggregator, HttpClientCodec}
+import io.netty.channel.{Channel, ChannelPipeline, EventLoopGroup}
+import io.netty.handler.codec.http.{HttpClientCodec, HttpObjectAggregator}
 
-import scala.concurrent.{Future, ExecutionContext}
-import scala.util.{Success, Failure}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 
 object Server{
