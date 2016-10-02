@@ -3,6 +3,7 @@ package com.josiahebhomenye.crypto.remote
 import java.io._
 import java.nio.file.{Files, Paths}
 
+import _root_.io.netty.channel.Channel
 import akka.event.EventStream
 import com.cryptoutility.protocol.Events.{UserInfo, _}
 import com.josiahebhomenye.crypto._
@@ -138,7 +139,7 @@ class CryptoClientIntegrationSpec extends ClientITestSetup{
       }
       streams = Random.shuffle(streams)
       streams.foreach(sendFromServer[Event](_))
-      sendFromServer[Event](StreamEnded(4))
+      sendFromServer[Event](StreamEnded(4, ""))
     }
 
   }

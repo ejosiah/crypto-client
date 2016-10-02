@@ -7,11 +7,9 @@ import javax.crypto.KeyGenerator
 import com.cryptoutility.protocol.EventSerializer
 import com.cryptoutility.protocol.EventSerializer._
 import com.cryptoutility.protocol.Events.{Event, UserInfo}
-import com.josiahebhomenye.crypto.BootStrap
 import io.netty.channel.{Channel, ChannelPipeline}
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 

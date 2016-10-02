@@ -53,7 +53,7 @@ class RemoteCryptoService(unwrap: String => Key, decrypt: (String, Key) => Strin
  def initialise(userInfo: UserInfo, isNew: Boolean): Future[UserCreated] = Future{
    handShakeLatch.await()
    if(mayBeConnection.isEmpty){
-     Logger.info(s"${Thread.currentThread().getName}, connection not yet available, going to wait")
+     Logger.info("connection not yet available, going to wait")
      if(!connectionLatch.await(10, TimeUnit.SECONDS)){
        val msg = "unable to acquire connection"
        Logger.info(s"${Thread.currentThread().getName}: $msg")

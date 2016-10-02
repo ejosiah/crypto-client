@@ -21,7 +21,7 @@ class ServerHandlerSpec extends CryptoClientSpec with MockitoSugar with OneServe
       val promise = Promise[Event]()
       val l = listener(promise)(_)
       val handler = new ServerHandler(Seq(), Seq(l))
-      val event = new StreamEnded(5)
+      val event = new StreamEnded(5, "")
 
       handler.channelRead0(ctx, event)
 
