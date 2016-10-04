@@ -91,7 +91,10 @@ class RemoteCryptoService(unwrap: String => Key, decrypt: (String, Key) => Strin
         maybePromise
           .map(_.asInstanceOf[Promise[UserCreated]])
           .foreach(_.success(e))
-      case e: StreamEvent => writer.write(e)
+      case e: StreamEvent =>
+        writer.write(e).foreach{res =>
+          mayBeConnection.foreach(con => con.writeAndFlush(res))
+        }
     }
   }
 }

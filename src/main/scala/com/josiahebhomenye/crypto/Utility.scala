@@ -15,21 +15,21 @@ object Visit{
   }
 
   def apply[T](path: String)(visit: Path => T): Seq[T]
-    = apply(path, visit, (p) => null.asInstanceOf[T])
+    = apply(path, visit, (p) => throw new Exception)
 }
 
 class Visit[T](visit: Path => T, postVisit: Path => T, stopOnError: Boolean = false) {
-  val result = Seq.empty[T]
+  var result = Seq.empty[T]
 
   def apply() = new SimpleFileVisitor[Path] {
     override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-      Try(visit(file)).toOption.foreach(result :+ _)
+      Try(visit(file)).toOption.foreach(it => result = result :+ it)
       FileVisitResult.CONTINUE
     }
 
     override def postVisitDirectory(dir: Path, e: IOException): FileVisitResult = {
       if (e == null) {
-        Try(postVisit(dir)).toOption.foreach(result :+ _)
+        Try(postVisit(dir)).toOption.foreach(it => result = result :+ it)
         FileVisitResult.CONTINUE
       }
       else if(stopOnError) {

@@ -12,6 +12,8 @@ class PipedStream extends Pipe[PipedOutputStream, PipedInputStream, Byte] {
 
   def feed(bytes: Array[Byte]): Unit = in.write(bytes)
 
+  def feed(bytes: Array[Byte], from: Int, length: Int) = in.write(bytes, from, length)
+
   override def close(): Unit = in.close()
 
   def retrieve(n: Int): Array[Byte] = {

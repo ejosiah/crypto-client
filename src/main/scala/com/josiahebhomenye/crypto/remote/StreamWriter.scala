@@ -2,21 +2,25 @@ package com.josiahebhomenye.crypto.remote
 
 import java.io.{DataOutputStream, FileOutputStream}
 import java.security.Key
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
 
 import com.cryptoutility.protocol.Events._
-import com.josiahebhomenye.crypto.Logger
+import com.cryptoutility.protocol.crypto.MD5
+import com.josiahebhomenye.crypto.{PipedStream, Logger}
 import com.typesafe.config.Config
 
 import scala.collection.mutable
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
+import scala.concurrent.duration._
 
 /**
   * Created by jay on 30/09/2016.
   */
-class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(implicit conf: Config) {
+class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(implicit conf: Config, ec: ExecutionContext) {
 
   val lock = new ReentrantLock()
   val startCondition = lock.newCondition()
@@ -28,13 +32,17 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
   var pos = 0L
   var size = 0L
   var file: String = null
+  var pipe: PipedStream = null
+  var digest: Future[String] = null
 
-  def write(event: StreamEvent): Unit = event match {
+  def write(event: StreamEvent): Option[StreamingResult] = event match {
     case e: StreamStarted =>
       useLock{
+        reset()
+        val id = UUID.randomUUID().toString
         val secret = unwrap(e.secret)
         val filename = decrypt(e.filename, secret)
-        val path = conf.getString("user.workDir") + s"/$filename.krypt"
+        val path = conf.getString("user.workDir") + s"/data/$id"
         file = path
         Logger.info(s" streaming started for $filename")
         out = new DataOutputStream(new FileOutputStream(path))
@@ -44,6 +52,7 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
         out.writeUTF(e.from)
         started.set(true)
         startCondition.signal()
+        None
       }
     case stream @ StreamPart(seqId, chunk) =>
       useLock{
@@ -55,8 +64,9 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
           write0(stream)
           processBuffer()
         }
+        None
       }
-    case e @ StreamEnded(count, _) =>
+    case e @ StreamEnded(count, checksum) =>
       useLock{
         size = count
         endReceived.set(true)
@@ -72,6 +82,10 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
         }else{
           endStreaming()
         }
+        // TODO rollback file if checksum is different
+        val expected = Await.result(digest, 1 second)
+  //      require(checksum == expected, "checksum not as expected")
+        Some(StreamingResult(count, Try(Done)))
       }
   }
 
@@ -80,6 +94,7 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
     flush()
     close()
     reset()
+    Future(pipe.close())
   }
 
   def flush(): Unit = out.flush()
@@ -91,6 +106,9 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
     pending.empty
     pos = 0L
     size = 0L
+    pipe = new PipedStream
+    digest = Future(MD5(pipe.out))
+    digest.onFailure{case NonFatal(e) => e.printStackTrace()}
   }
 
   def close(): Unit = {
@@ -110,7 +128,7 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
   }
 
   private def processBuffer(): Unit = {
-    Logger.info(s" pending: ${pending.size}")
+    Logger.trace(s" pending: ${pending.size}")
     // TODO change protocol Order to avoid casting
     while(pending.exists(_.asInstanceOf[StreamPart].seqId == pos )){
       val stream = pending.find(_.asInstanceOf[StreamPart].seqId == pos ).get.asInstanceOf[StreamPart]
@@ -126,6 +144,7 @@ class StreamWriter(unwrap: String => Key, decrypt: (String, Key) => String)(impl
   private def write0(stream: StreamPart): Unit = {
     Logger.debug(s"writing stream ${stream.seqId}")
     out.write(stream.chunk)
+    pipe.feed(stream.chunk)
     pos = pos + 1
     Logger.debug(s"processed $pos chunks")
   }

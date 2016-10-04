@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 
 import _root_.io.netty.channel.Channel
 import com.cryptoutility.protocol.Events.{UserInfo, _}
-import com.cryptoutility.protocol.crypto.{Base64Decode, Base64Encode, Decrypt, Encrypt}
+import com.cryptoutility.protocol.crypto._
 import com.josiahebhomenye.crypto._
 
 import scala.collection.mutable.ArrayBuffer
@@ -116,6 +116,7 @@ class CryptoClientIntegrationSpec extends ClientITestSetup{
     val filename = encrypt("poem.txt", secretKey)
     val contentType = encrypt("application/text", secretKey)
     val from = encrypt("Alice Lanistar", secretKey)
+    val checksum = MD5(cipherText)
 
     val secret = wrap(secretKey)
 //    Logger.info(s"secret: size: ${secret.length}")
@@ -136,7 +137,7 @@ class CryptoClientIntegrationSpec extends ClientITestSetup{
       }
       streams = Random.shuffle(streams)
       streams.foreach(sendFromServer[Event](_))
-      sendFromServer[Event](StreamEnded(4, ""))
+      sendFromServer[Event](StreamEnded(4, checksum))
     }
 
   }

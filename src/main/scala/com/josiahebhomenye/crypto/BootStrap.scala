@@ -52,7 +52,10 @@ class BootStrap(initialise: Initialize, askUser: AskUser, saveUser: SaveUser, ex
        initialise(extractUserInfo(home), false).map(it => notifyUser(it.user))
     } else {
        val f = askUser().flatMap{ info =>
-         if(!home.exists()) home.mkdir()
+         if(!home.exists()) {
+           home.mkdir()
+           new File(home, "data").mkdir()
+         }
          val gen = KeyPairGenerator.getInstance(Env.getString("cipher.asymmetric.algorithm"))
          gen.initialize(Env.getInt("cipher.asymmetric.key.length"))
        //TODO figure this out val keyPair @ (_, publicKey) = gen.generateKeyPair()

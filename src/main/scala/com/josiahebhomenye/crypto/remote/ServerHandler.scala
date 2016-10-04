@@ -58,7 +58,7 @@ class ServerHandler(listeners: Seq[ChannelListener], eventListeners: Seq[EventLi
 
   override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = {
     listeners.foreach(f => f(ExceptionCaught(ctx, cause))) // TODO use a differnt handler for errors
-    throw cause
+    cause.printStackTrace()
   }
 
 }

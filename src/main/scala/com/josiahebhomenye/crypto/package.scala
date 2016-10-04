@@ -159,4 +159,8 @@ package object crypto {
       }
     }
   }
+
+  object Close{
+    def apply[AC <: AutoCloseable](ac: AC): Unit = TryResource(ac)(_ => ())
+  }
 }
